@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra 3D Pathfinding Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px 0 40px 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 5px 20px 5px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            animation: fadeInDown 0.6s ease-out;
+            margin-bottom: 0px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+            margin-bottom: 0px;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.8rem;
+            font-weight: 400;
+        }
+
+        .controls {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 14px;
+            padding: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .control-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, button, input[type="range"] {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        select {
+            background: #334155;
+            color: white;
+            border: 2px solid #475569;
+        }
+
+        select:hover, select:focus {
+            border-color: #8b5cf6;
+            outline: none;
+            transform: translateY(-2px);
+        }
+
+        input[type="range"] {
+            width: 150px;
+            accent-color: #8b5cf6;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #8b5cf6;
+        }
+
+        button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            min-width: 110px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .maze-btn {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            background: rgba(51, 65, 85, 0.8);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .mode-btn {
+            padding: 10px 18px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            min-width: 90px;
+            box-shadow: none;
+            color: #cbd5e1;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin: 0px auto 30px auto;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            margin : 20px auto;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px auto;
+            max-width: 90vw;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 22px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            text-align: center;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(139, 92, 246, 0.4);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(51, 65, 85, 0.5);
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+
+        .legend-item:hover {
+            transform: translateY(-2px);
+            background: rgba(51, 65, 85, 0.8);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.6rem; }
+            .subtitle { font-size: 0.8rem; }
+            .controls { padding: 12px; gap: 8px; }
+            .stats { gap: 10px; margin: 15px auto; }
+            .stat-card { padding: 10px 15px; min-width: 90px; }
+            .stat-value { font-size: 1.5rem; }
+            .stat-label { font-size: 0.7rem; }
+            .container { padding: 0px 10px 10px 10px; }
+            .legend-item { font-size: 0.75rem; padding: 4px 6px; }
+            select, button, input[type="range"] { padding: 8px 12px; font-size: 0.85rem; }
+            button { min-width: 100px; }
+            #canvas-container { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1> Pathfinding Visualizer</h1>
+            <p class="subtitle">                              </p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Algorithm</label>
+                <select id="algorithm">
+                    <option value="astar">⭐ A* Search (Best)</option>
+                    <option value="dijkstra">📊 Dijkstra's Algorithm</option>
+                    <option value="bfs">🌊 Breadth-First Search</option>
+                    <option value="greedy">🎯 Greedy Best-First</option>
+                    <option value="dfs">🌳 Depth-First Search</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Character</label>
+                <select id="charSelect">
+                    <option value="🚶">🚶 Walker</option>
+                    <option value="🏃">🏃 Runner</option>
+                    <option value="🤖">🤖 Robot</option>
+                    <option value="🚗">🚗 Car</option>
+                    <option value="🚁">🚁 Helicopter</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Drawing Mode</label>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="wall">🧱 Wall</button>
+                    <button class="mode-btn" data-mode="weight">⚖️ Weight</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="cameraToggle">
+                    🎥 Camera Follow
+                </label>
+            </div>
+
+            <div class="control-group">
+                <label>Speed</label>
+                <input type="range" id="speed" min="1" max="100" value="60">
+            </div>
+
+            <div class="control-group">
+                <label>Camera Height</label>
+                <input type="range" id="cameraHeight" min="5" max="25" value="8">
+            </div>
+
+            <div class="control-group">
+                <label>Camera Distance</label>
+                <input type="range" id="cameraDistance" min="10" max="30" value="14">
+            </div>
+            
+            <button id="visualize-btn">▶️ Start Journey</button>
+            <button id="random-maze-btn" class="maze-btn">🎲 Random Maze</button>
+            <button id="clear-path-btn" class="clear-btn">🧹 Clear Path</button>
+            <button id="clear-walls-btn" class="clear-btn">Clear All</button>
+            <button id="reset-btn" class="reset-btn">🔄 Reset</button>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #3b82f6, #2563eb);"></div>
+                <span>🚀 Start</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+                <span>🎯 Goal</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #1e293b, #0f172a);"></div>
+                <span>🧱 Wall</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #64748b, #475569);"></div>
+                <span>⚖️ Weight</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #fbbf24, #f59e0b);"></div>
+                <span>🔍 Exploring</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
+                <span>✨ Path</span>
+            </div>
+        </div>
+
+        <div id="status" class="status">
+            🎮 Click on cells to place start and goal points, then draw obstacles!
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <span class="stat-value" id="nodes-visited">0</span>
+            <span class="stat-label">Nodes Explored</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-value" id="path-length">0</span>
+            <span class="stat-label">Path Length</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-value" id="time-taken">0ms</span>
+            <span class="stat-label">Time Taken</span>
+        </div>
+    </div>
+
+    <script>
+        // Grid configuration
+        const GRID_ROWS = 20;
+        const GRID_COLS = 40;
+        const CELL_SIZE = 1;
+        const CELL_GAP = 0.05;
+
+        const CELL_TYPES = {
+            EMPTY: 'empty',
+            WALL: 'wall',
+            WEIGHT: 'weight',
+            START: 'start',
+            END: 'end',
+            VISITED: 'visited',
+            PATH: 'path'
+        };
+
+        // Three.js setup
+        let scene, camera, renderer, raycaster, mouse;
+        let grid = [];
+        let cellMeshes = [];
+        let characterMesh = null;
+        let startNode = null;
+        let endNode = null;
+        let isMouseDown = false;
+        let isDrawing = false;
+        let isVisualizing = false;
+        let currentMode = 'wall';
+        let animationSpeed = 60;
+        let currentCharacter = '🚶';
+        let cameraHeight = 17;
+        let cameraDistance = 11;
+
+        // UI Elements
+        const algorithmSelect = document.getElementById('algorithm');
+        const visualizeBtn = document.getElementById('visualize-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const clearWallsBtn = document.getElementById('clear-walls-btn');
+        const clearPathBtn = document.getElementById('clear-path-btn');
+        const randomMazeBtn = document.getElementById('random-maze-btn');
+        const statusElement = document.getElementById('status');
+        const speedSlider = document.getElementById('speed');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const nodesVisitedEl = document.getElementById('nodes-visited');
+        const pathLengthEl = document.getElementById('path-length');
+        const timeTakenEl = document.getElementById('time-taken');
+        const cameraToggle = document.getElementById('cameraToggle');
+        const charSelect = document.getElementById('charSelect');
+        const cameraHeightSlider = document.getElementById('cameraHeight');
+        const cameraDistanceSlider = document.getElementById('cameraDistance');
+
+        function init() {
+            setupThreeJS();
+            setupGrid();
+            setupEventListeners();
+            animate();
+            updateStatus('🎮 Click on cells to place start and goal points!');
+        }
+
+        function setupThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.Fog(0x0f172a, 20, 60);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                65,
+                window.innerWidth / 600,
+                0.1,
+                1000
+            );
+            camera.position.set(GRID_COLS / 2, cameraHeight, GRID_ROWS / 2 + cameraDistance);
+            camera.lookAt(GRID_COLS / 2, 0, GRID_ROWS / 2);
+
+            // Renderer
+            const container = document.getElementById('canvas-container');
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -30;
+            directionalLight.shadow.camera.right = 30;
+            directionalLight.shadow.camera.top = 30;
+            directionalLight.shadow.camera.bottom = -30;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Purple accent light
+            const purpleLight = new THREE.PointLight(0x8b5cf6, 0.5, 50);
+            purpleLight.position.set(GRID_COLS / 2, 10, GRID_ROWS / 2);
+            scene.add(purpleLight);
+
+            // Raycaster for mouse picking
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setupGrid() {
+            // Clear existing meshes
+            cellMeshes.forEach(row => row.forEach(cell => scene.remove(cell.mesh)));
+            cellMeshes = [];
+            grid = [];
+
+            // Create grid data and meshes
+            for (let row = 0; row < GRID_ROWS; row++) {
+                grid[row] = [];
+                cellMeshes[row] = [];
+                
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col] = {
+                        row, col,
+                        type: CELL_TYPES.EMPTY,
+                        weight: 1,
+                        distance: Infinity,
+                        previous: null,
+                        visited: false,
+                        f: 0, g: 0, h: 0
+                    };
+
+                    // Create cell mesh
+                    const geometry = new THREE.BoxGeometry(CELL_SIZE, 0.2, CELL_SIZE);
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0x1e293b,
+                        roughness: 0.7,
+                        metalness: 0.3
+                    });
+                    const mesh = new THREE.Mesh(geometry, material);
+                    
+                    mesh.position.set(
+                        col * (CELL_SIZE + CELL_GAP),
+                        0,
+                        row * (CELL_SIZE + CELL_GAP)
+                    );
+                    
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    mesh.userData = { row, col };
+                    
+                    scene.add(mesh);
+                    cellMeshes[row][col] = { mesh, type: CELL_TYPES.EMPTY };
+                }
+            }
+
+            // Create character if not exists
+            if (!characterMesh) {
+                createCharacter();
+            }
+        }
+
+        function createCharacter() {
+            if (characterMesh) {
+                scene.remove(characterMesh);
+            }
+
+            // Create a group to hold character components
+            const characterGroup = new THREE.Group();
+            
+            // Different character shapes based on selection
+            let mainMesh;
+            
+            switch(currentCharacter) {
+                case '🚶': // Walker - Simple humanoid
+                case '🏃': // Runner - Similar to walker
+                    // Body
+                    const bodyGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.5, 8);
+                    const bodyMat = new THREE.MeshStandardMaterial({
+                        color: 0x8b5cf6,
+                        emissive: 0x8b5cf6,
+                        emissiveIntensity: 0.5,
+                        roughness: 0.3,
+                        metalness: 0.7
+                    });
+                    mainMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                    mainMesh.position.y = 0.25;
+                    characterGroup.add(mainMesh);
+                    
+                    // Head
+                    const headGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                    const headMesh = new THREE.Mesh(headGeo, bodyMat);
+                    headMesh.position.y = 0.6;
+                    characterGroup.add(headMesh);
+                    break;
+                    
+                case '🤖': // Robot - Blocky
+                    const robotBodyGeo = new THREE.BoxGeometry(0.3, 0.4, 0.25);
+                    const robotMat = new THREE.MeshStandardMaterial({
+                        color: 0x64748b,
+                        emissive: 0x3b82f6,
+                        emissiveIntensity: 0.6,
+                        roughness: 0.2,
+                        metalness: 0.9
+                    });
+                    mainMesh = new THREE.Mesh(robotBodyGeo, robotMat);
+                    mainMesh.position.y = 0.3;
+                    characterGroup.add(mainMesh);
+                    
+                    // Robot head
+                    const robotHeadGeo = new THREE.BoxGeometry(0.25, 0.25, 0.2);
+                    const robotHead = new THREE.Mesh(robotHeadGeo, robotMat);
+                    robotHead.position.y = 0.6;
+                    characterGroup.add(robotHead);
+                    
+                    // Eyes (glowing)
+                    const eyeGeo = new THREE.SphereGeometry(0.04, 8, 8);
+                    const eyeMat = new THREE.MeshStandardMaterial({
+                        color: 0x00ffff,
+                        emissive: 0x00ffff,
+                        emissiveIntensity: 1
+                    });
+                    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                    leftEye.position.set(-0.08, 0.6, 0.11);
+                    characterGroup.add(leftEye);
+                    
+                    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                    rightEye.position.set(0.08, 0.6, 0.11);
+                    characterGroup.add(rightEye);
+                    break;
+                    
+                case '🚗': // Car - Box with wheels
+                    const carBodyGeo = new THREE.BoxGeometry(0.5, 0.25, 0.35);
+                    const carMat = new THREE.MeshStandardMaterial({
+                        color: 0xef4444,
+                        emissive: 0xef4444,
+                        emissiveIntensity: 0.4,
+                        roughness: 0.3,
+                        metalness: 0.8
+                    });
+                    mainMesh = new THREE.Mesh(carBodyGeo, carMat);
+                    mainMesh.position.y = 0.25;
+                    characterGroup.add(mainMesh);
+                    
+                    // Car roof
+                    const roofGeo = new THREE.BoxGeometry(0.3, 0.2, 0.3);
+                    const roof = new THREE.Mesh(roofGeo, carMat);
+                    roof.position.y = 0.475;
+                    characterGroup.add(roof);
+                    
+                    // Wheels
+                    const wheelGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16);
+                    const wheelMat = new THREE.MeshStandardMaterial({
+                        color: 0x1e293b,
+                        roughness: 0.8
+                    });
+                    
+                    const wheelPositions = [
+                        [-0.2, 0.08, 0.2],
+                        [0.2, 0.08, 0.2],
+                        [-0.2, 0.08, -0.2],
+                        [0.2, 0.08, -0.2]
+                    ];
+                    
+                    wheelPositions.forEach(pos => {
+                        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                        wheel.rotation.z = Math.PI / 2;
+                        wheel.position.set(pos[0], pos[1], pos[2]);
+                        characterGroup.add(wheel);
+                    });
+                    break;
+                    
+                case '🚁': // Helicopter
+                    const heliBodyGeo = new THREE.SphereGeometry(0.2, 16, 16);
+                    const heliMat = new THREE.MeshStandardMaterial({
+                        color: 0x10b981,
+                        emissive: 0x10b981,
+                        emissiveIntensity: 0.5,
+                        roughness: 0.2,
+                        metalness: 0.8
+                    });
+                    mainMesh = new THREE.Mesh(heliBodyGeo, heliMat);
+                    mainMesh.position.y = 0.3;
+                    mainMesh.scale.set(1, 0.7, 1.2);
+                    characterGroup.add(mainMesh);
+                    
+                    // Tail
+                    const tailGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8);
+                    const tailMat = new THREE.MeshStandardMaterial({
+                        color: 0x10b981,
+                        roughness: 0.3,
+                        metalness: 0.7
+                    });
+                    const tail = new THREE.Mesh(tailGeo, tailMat);
+                    tail.rotation.z = Math.PI / 2;
+                    tail.position.set(-0.3, 0.3, 0);
+                    characterGroup.add(tail);
+                    
+                    // Main rotor
+                    const rotorGeo = new THREE.BoxGeometry(0.6, 0.02, 0.08);
+                    const rotorMat = new THREE.MeshStandardMaterial({
+                        color: 0x475569,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+                    const rotor = new THREE.Mesh(rotorGeo, rotorMat);
+                    rotor.position.y = 0.5;
+                    rotor.userData.isRotor = true;
+                    characterGroup.add(rotor);
+                    break;
+                    
+                default:
+                    // Default sphere
+                    const defaultGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                    const defaultMat = new THREE.MeshStandardMaterial({
+                        color: 0x8b5cf6,
+                        emissive: 0x8b5cf6,
+                        emissiveIntensity: 0.5,
+                        roughness: 0.3,
+                        metalness: 0.7
+                    });
+                    mainMesh = new THREE.Mesh(defaultGeo, defaultMat);
+                    characterGroup.add(mainMesh);
+            }
+            
+            characterGroup.position.y = 0.6;
+            characterGroup.visible = false;
+            characterGroup.castShadow = true;
+            characterGroup.userData.character = currentCharacter;
+            
+            characterMesh = characterGroup;
+            scene.add(characterMesh);
+        }
+
+        function updateCellVisual(row, col) {
+            const node = grid[row][col];
+            const cellData = cellMeshes[row][col];
+            const mesh = cellData.mesh;
+
+            let color, height, emissive, emissiveIntensity;
+
+            switch (node.type) {
+                case CELL_TYPES.START:
+                    color = 0x3b82f6;
+                    height = 0.5;
+                    emissive = 0x3b82f6;
+                    emissiveIntensity = 0.6;
+                    break;
+                case CELL_TYPES.END:
+                    color = 0xef4444;
+                    height = 0.5;
+                    emissive = 0xef4444;
+                    emissiveIntensity = 0.6;
+                    break;
+                case CELL_TYPES.WALL:
+                    color = 0x0f172a;
+                    height = 1.2;
+                    emissive = 0x000000;
+                    emissiveIntensity = 0;
+                    break;
+                case CELL_TYPES.WEIGHT:
+                    color = 0x64748b;
+                    height = 0.6;
+                    emissive = 0x64748b;
+                    emissiveIntensity = 0.3;
+                    break;
+                case CELL_TYPES.VISITED:
+                    color = 0xfbbf24;
+                    height = 0.3;
+                    emissive = 0xfbbf24;
+                    emissiveIntensity = 0.4;
+                    break;
+                case CELL_TYPES.PATH:
+                    color = 0x8b5cf6;
+                    height = 0.4;
+                    emissive = 0x8b5cf6;
+                    emissiveIntensity = 0.8;
+                    break;
+                default:
+                    color = 0x1e293b;
+                    height = 0.2;
+                    emissive = 0x000000;
+                    emissiveIntensity = 0;
+            }
+
+            // Animate with GSAP
+            gsap.to(mesh.material.color, { r: (color >> 16) / 255, g: ((color >> 8) & 0xff) / 255, b: (color & 0xff) / 255, duration: 0.3 });
+            gsap.to(mesh.material, { emissiveIntensity, duration: 0.3 });
+            mesh.material.emissive.setHex(emissive);
+            
+            gsap.to(mesh.scale, { y: height / 0.2, duration: 0.4, ease: 'back.out(1.7)' });
+            gsap.to(mesh.position, { y: (height - 0.2) / 2, duration: 0.4, ease: 'back.out(1.7)' });
+
+            // Add rotation animation for walls
+            if (node.type === CELL_TYPES.WALL) {
+                mesh.rotation.y = 0;
+                gsap.from(mesh.rotation, { y: Math.PI * 2, duration: 0.6, ease: 'back.out(1.7)' });
+            }
+        }
+
+        function onMouseMove(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            if (isMouseDown && isDrawing && !isVisualizing) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(scene.children.filter(obj => obj.userData.row !== undefined));
+                
+                if (intersects.length > 0) {
+                    const { row, col } = intersects[0].object.userData;
+                    drawCell(row, col);
+                }
+            }
+        }
+
+        function onMouseDown(event) {
+            if (isVisualizing) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children.filter(obj => obj.userData.row !== undefined));
+
+            if (intersects.length > 0) {
+                const { row, col } = intersects[0].object.userData;
+                const node = grid[row][col];
+
+                isMouseDown = true;
+
+                if (!startNode && node.type === CELL_TYPES.EMPTY) {
+                    setStartNode(row, col);
+                } else if (!endNode && node.type === CELL_TYPES.EMPTY) {
+                    setEndNode(row, col);
+                } else if (node.type === CELL_TYPES.EMPTY) {
+                    drawCell(row, col);
+                    isDrawing = true;
+                }
+            }
+        }
+
+        function onMouseUp() {
+            isMouseDown = false;
+            isDrawing = false;
+        }
+
+        function drawCell(row, col) {
+            const node = grid[row][col];
+            if (node.type === CELL_TYPES.EMPTY) {
+                if (currentMode === 'wall') {
+                    node.type = CELL_TYPES.WALL;
+                    node.weight = Infinity;
+                } else {
+                    node.type = CELL_TYPES.WEIGHT;
+                    node.weight = 5;
+                }
+                updateCellVisual(row, col);
+            }
+        }
+
+        function setStartNode(row, col) {
+            startNode = { row, col };
+            grid[row][col].type = CELL_TYPES.START;
+            updateCellVisual(row, col);
+            positionCharacter(row, col, false);
+            updateStatus('✅ Great! Now click to place the goal 🎯');
+        }
+
+        function setEndNode(row, col) {
+            endNode = { row, col };
+            grid[row][col].type = CELL_TYPES.END;
+            updateCellVisual(row, col);
+            updateStatus('🎨 Perfect! Draw walls/weights or generate a maze, then start!');
+        }
+
+        function positionCharacter(row, col, animate = true) {
+            if (!characterMesh) return;
+            
+            characterMesh.visible = true;
+            const targetX = col * (CELL_SIZE + CELL_GAP);
+            const targetZ = row * (CELL_SIZE + CELL_GAP);
+
+            if (animate) {
+                gsap.to(characterMesh.position, {
+                    x: targetX,
+                    z: targetZ,
+                    duration: 0.15,
+                    ease: 'power2.out',
+                    onUpdate: () => {
+                        if (cameraToggle.checked) {
+                            camera.lookAt(characterMesh.position.x, 0, characterMesh.position.z);
+                        }
+                    }
+                });
+                gsap.to(characterMesh.position, { y: 0.8, duration: 0.1, yoyo: true, repeat: 1 });
+            } else {
+                characterMesh.position.set(targetX, 0.6, targetZ);
+            }
+        }
+
+        function setupEventListeners() {
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+
+            visualizeBtn.addEventListener('click', visualizeAlgorithm);
+            resetBtn.addEventListener('click', resetGrid);
+            clearWallsBtn.addEventListener('click', clearWalls);
+            clearPathBtn.addEventListener('click', clearPath);
+            randomMazeBtn.addEventListener('click', generateRandomMaze);
+            
+            speedSlider.addEventListener('input', (e) => {
+                animationSpeed = parseInt(e.target.value);
+            });
+
+            cameraHeightSlider.addEventListener('input', (e) => {
+                cameraHeight = parseInt(e.target.value);
+                if (!cameraToggle.checked) {
+                    camera.position.y = cameraHeight;
+                }
+            });
+
+            cameraDistanceSlider.addEventListener('input', (e) => {
+                cameraDistance = parseInt(e.target.value);
+                if (!cameraToggle.checked) {
+                    camera.position.z = GRID_ROWS / 2 + cameraDistance;
+                }
+            });
+
+            charSelect.addEventListener('change', (e) => {
+                currentCharacter = e.target.value;
+                createCharacter();
+                if (startNode) {
+                    positionCharacter(startNode.row, startNode.col, false);
+                }
+            });
+
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modeBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentMode = btn.dataset.mode;
+                    updateStatus(currentMode === 'wall' ? 
+                        '🧱 Wall mode: Draw obstacles' : 
+                        '⚖️ Weight mode: Add weighted cells (cost: 5)');
+                });
+            });
+        }
+
+        function updateStatus(message) {
+            statusElement.textContent = message;
+        }
+
+        function resetGrid() {
+            if (isVisualizing) return;
+            startNode = null;
+            endNode = null;
+            if (characterMesh) characterMesh.visible = false;
+            setupGrid();
+            resetStats();
+            updateStatus('🎮 Click on cells to place start and goal points!');
+        }
+
+        function clearWalls() {
+            if (isVisualizing) return;
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const node = grid[row][col];
+                    if (node.type === CELL_TYPES.WALL || 
+                        node.type === CELL_TYPES.WEIGHT || 
+                        node.type === CELL_TYPES.VISITED || 
+                        node.type === CELL_TYPES.PATH) {
+                        node.type = CELL_TYPES.EMPTY;
+                        node.weight = 1;
+                        node.visited = false;
+                        node.distance = Infinity;
+                        node.previous = null;
+                        updateCellVisual(row, col);
+                    }
+                }
+            }
+            resetStats();
+            updateStatus('🧹 Cleared! Ready to draw or generate maze.');
+        }
+
+        function clearPath() {
+            if (isVisualizing) return;
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const node = grid[row][col];
+                    if (node.type === CELL_TYPES.VISITED || node.type === CELL_TYPES.PATH) {
+                        node.type = CELL_TYPES.EMPTY;
+                        node.visited = false;
+                        node.distance = Infinity;
+                        node.previous = null;
+                        node.f = 0; node.g = 0; node.h = 0;
+                        updateCellVisual(row, col);
+                    }
+                }
+            }
+            resetStats();
+            if (startNode) {
+                positionCharacter(startNode.row, startNode.col, false);
+            }
+            updateStatus('🧹 Path cleared! Ready to visualize again.');
+        }
+
+        async function generateRandomMaze() {
+            if (isVisualizing) return;
+            clearPath();
+            
+            updateStatus('🎲 Generating random maze...');
+            
+            const walls = [];
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    const node = grid[row][col];
+                    
+                    if (node.type === CELL_TYPES.START || node.type === CELL_TYPES.END) continue;
+                    
+                    if (node.type === CELL_TYPES.WALL || node.type === CELL_TYPES.WEIGHT) {
+                        node.type = CELL_TYPES.EMPTY;
+                        node.weight = 1;
+                        updateCellVisual(row, col);
+                    }
+                    
+                    if (Math.random() < 0.28) {
+                        walls.push({ row, col });
+                    }
+                }
+            }
+            
+            for (let i = 0; i < walls.length; i++) {
+                const wall = walls[i];
+                grid[wall.row][wall.col].type = CELL_TYPES.WALL;
+                grid[wall.row][wall.col].weight = Infinity;
+                updateCellVisual(wall.row, wall.col);
+                if (i % 5 === 0) await new Promise(resolve => setTimeout(resolve, 1));
+            }
+            
+            updateStatus('✅ Maze generated! Ready to visualize.');
+        }
+
+        function getNeighbors(node) {
+            const neighbors = [];
+            const { row, col } = node;
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            for (const [dRow, dCol] of directions) {
+                const newRow = row + dRow;
+                const newCol = col + dCol;
+                
+                if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
+                    const neighbor = grid[newRow][newCol];
+                    if (neighbor.type !== CELL_TYPES.WALL) {
+                        neighbors.push(neighbor);
+                    }
+                }
+            }
+            
+            return neighbors;
+        }
+
+        function manhattanDistance(node1, node2) {
+            return Math.abs(node1.row - node2.row) + Math.abs(node1.col - node2.col);
+        }
+
+        async function dijkstra(start, end) {
+            const visitedNodes = [];
+            const unvisitedNodes = [];
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col].distance = Infinity;
+                    grid[row][col].previous = null;
+                    grid[row][col].visited = false;
+                    if (grid[row][col].type !== CELL_TYPES.WALL) {
+                        unvisitedNodes.push(grid[row][col]);
+                    }
+                }
+            }
+            
+            start.distance = 0;
+            
+            while (unvisitedNodes.length > 0) {
+                unvisitedNodes.sort((a, b) => a.distance - b.distance);
+                const currentNode = unvisitedNodes.shift();
+                
+                if (currentNode.distance === Infinity) break;
+                
+                currentNode.visited = true;
+                visitedNodes.push(currentNode);
+                
+                if (currentNode === end) break;
+                
+                const neighbors = getNeighbors(currentNode);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        const tentativeDistance = currentNode.distance + neighbor.weight;
+                        if (tentativeDistance < neighbor.distance) {
+                            neighbor.distance = tentativeDistance;
+                            neighbor.previous = currentNode;
+                        }
+                    }
+                }
+            }
+            
+            return visitedNodes;
+        }
+
+        async function aStar(start, end) {
+            const visitedNodes = [];
+            const openSet = [start];
+            const closedSet = [];
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col].g = Infinity;
+                    grid[row][col].h = 0;
+                    grid[row][col].f = 0;
+                    grid[row][col].previous = null;
+                    grid[row][col].visited = false;
+                }
+            }
+            
+            start.g = 0;
+            start.h = manhattanDistance(start, end);
+            start.f = start.g + start.h;
+            
+            while (openSet.length > 0) {
+                let current = openSet[0];
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < current.f) {
+                        current = openSet[i];
+                    }
+                }
+                
+                if (current === end) break;
+                
+                openSet.splice(openSet.indexOf(current), 1);
+                closedSet.push(current);
+                current.visited = true;
+                visitedNodes.push(current);
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (closedSet.includes(neighbor)) continue;
+                    
+                    const tentativeG = current.g + neighbor.weight;
+                    
+                    if (!openSet.includes(neighbor)) {
+                        openSet.push(neighbor);
+                    } else if (tentativeG >= neighbor.g) {
+                        continue;
+                    }
+                    
+                    neighbor.previous = current;
+                    neighbor.g = tentativeG;
+                    neighbor.h = manhattanDistance(neighbor, end);
+                    neighbor.f = neighbor.g + neighbor.h;
+                }
+            }
+            
+            return visitedNodes;
+        }
+
+        async function bfs(start, end) {
+            const visitedNodes = [];
+            const queue = [start];
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col].visited = false;
+                    grid[row][col].previous = null;
+                }
+            }
+            
+            start.visited = true;
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                visitedNodes.push(current);
+                
+                if (current === end) break;
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        neighbor.visited = true;
+                        neighbor.previous = current;
+                        queue.push(neighbor);
+                    }
+                }
+            }
+            
+            return visitedNodes;
+        }
+
+        async function dfs(start, end) {
+            const visitedNodes = [];
+            const stack = [start];
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col].visited = false;
+                    grid[row][col].previous = null;
+                }
+            }
+            
+            while (stack.length > 0) {
+                const current = stack.pop();
+                
+                if (current.visited) continue;
+                
+                current.visited = true;
+                visitedNodes.push(current);
+                
+                if (current === end) break;
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        neighbor.previous = current;
+                        stack.push(neighbor);
+                    }
+                }
+            }
+            
+            return visitedNodes;
+        }
+
+        async function greedyBestFirst(start, end) {
+            const visitedNodes = [];
+            const openSet = [start];
+            
+            for (let row = 0; row < GRID_ROWS; row++) {
+                for (let col = 0; col < GRID_COLS; col++) {
+                    grid[row][col].h = manhattanDistance(grid[row][col], end);
+                    grid[row][col].visited = false;
+                    grid[row][col].previous = null;
+                }
+            }
+            
+            start.visited = true;
+            
+            while (openSet.length > 0) {
+                openSet.sort((a, b) => a.h - b.h);
+                const current = openSet.shift();
+                visitedNodes.push(current);
+                
+                if (current === end) break;
+                
+                const neighbors = getNeighbors(current);
+                for (const neighbor of neighbors) {
+                    if (!neighbor.visited) {
+                        neighbor.visited = true;
+                        neighbor.previous = current;
+                        openSet.push(neighbor);
+                    }
+                }
+            }
+            
+            return visitedNodes;
+        }
+
+        function getShortestPath(end) {
+            const path = [];
+            let current = end;
+            
+            while (current !== null) {
+                path.unshift(current);
+                current = current.previous;
+            }
+            
+            return path;
+        }
+
+        async function animateVisited(visitedNodes) {
+            const delay = Math.max(1, 101 - animationSpeed);
+            
+            for (let i = 0; i < visitedNodes.length; i++) {
+                const node = visitedNodes[i];
+                if (node.type !== CELL_TYPES.START && node.type !== CELL_TYPES.END) {
+                    node.type = CELL_TYPES.VISITED;
+                    updateCellVisual(node.row, node.col);
+                    nodesVisitedEl.textContent = i + 1;
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        async function animatePath(path) {
+            const baseDelay = Math.max(20, 150 - animationSpeed);
+            
+            for (let i = 0; i < path.length; i++) {
+                const node = path[i];
+                
+                positionCharacter(node.row, node.col, true);
+                
+                if (node.type !== CELL_TYPES.START && node.type !== CELL_TYPES.END) {
+                    node.type = CELL_TYPES.PATH;
+                    updateCellVisual(node.row, node.col);
+                }
+                
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => {
+                        setTimeout(resolve, baseDelay);
+                    });
+                });
+            }
+        }
+
+        function resetStats() {
+            nodesVisitedEl.textContent = '0';
+            pathLengthEl.textContent = '0';
+            timeTakenEl.textContent = '0ms';
+        }
+
+        async function visualizeAlgorithm() {
+            if (!startNode || !endNode) {
+                updateStatus('⚠️ Please place both start and goal points first!');
+                return;
+            }
+            
+            if (isVisualizing) return;
+            
+            isVisualizing = true;
+            visualizeBtn.disabled = true;
+            resetBtn.disabled = true;
+            clearWallsBtn.disabled = true;
+            randomMazeBtn.disabled = true;
+            
+            clearPath();
+            
+            const algorithm = algorithmSelect.value;
+            const start = grid[startNode.row][startNode.col];
+            const end = grid[endNode.row][endNode.col];
+            
+            const algoNames = {
+                'astar': 'A* Search',
+                'dijkstra': "Dijkstra's Algorithm",
+                'bfs': 'Breadth-First Search',
+                'dfs': 'Depth-First Search',
+                'greedy': 'Greedy Best-First'
+            };
+            
+            updateStatus(`🔍 Running ${algoNames[algorithm]}... ${currentCharacter} is exploring!`);
+            
+            if (cameraToggle.checked) {
+                positionCharacter(startNode.row, startNode.col, true);
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            const startTime = performance.now();
+            let visitedNodes = [];
+            
+            switch (algorithm) {
+                case 'dijkstra':
+                    visitedNodes = await dijkstra(start, end);
+                    break;
+                case 'astar':
+                    visitedNodes = await aStar(start, end);
+                    break;
+                case 'bfs':
+                    visitedNodes = await bfs(start, end);
+                    break;
+                case 'dfs':
+                    visitedNodes = await dfs(start, end);
+                    break;
+                case 'greedy':
+                    visitedNodes = await greedyBestFirst(start, end);
+                    break;
+            }
+            
+            await animateVisited(visitedNodes);
+            
+            const shortestPath = getShortestPath(end);
+            const endTime = performance.now();
+            
+            if (shortestPath.length > 1) {
+                updateStatus(`✨ Path found! ${currentCharacter} is on the way...`);
+                await animatePath(shortestPath);
+                pathLengthEl.textContent = shortestPath.length - 1;
+                updateStatus(`🎉 Success! Reached the goal in ${shortestPath.length - 1} steps!`);
+            } else {
+                updateStatus('❌ No path found! The goal is unreachable.');
+            }
+            
+            timeTakenEl.textContent = Math.round(endTime - startTime) + 'ms';
+            
+            isVisualizing = false;
+            visualizeBtn.disabled = false;
+            resetBtn.disabled = false;
+            clearWallsBtn.disabled = false;
+            randomMazeBtn.disabled = false;
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Only do gentle camera movement if not following character
+            if (!cameraToggle.checked) {
+                const time = Date.now() * 0.0001;
+                camera.position.x = GRID_COLS / 2 + Math.sin(time) * 1.0;
+                camera.position.z = GRID_ROWS / 2 + cameraDistance + Math.cos(time) * 1.0;
+                camera.lookAt(GRID_COLS / 2, 0, GRID_ROWS / 2);
+            }
+            
+            // Character animations
+            if (characterMesh && characterMesh.visible) {
+                // Rotate entire character
+                characterMesh.rotation.y += 0.02;
+                
+                // Special animations for helicopter rotor
+                characterMesh.children.forEach(child => {
+                    if (child.userData.isRotor) {
+                        child.rotation.y += 0.3; // Fast rotor spin
+                    }
+                });
+                
+                // Bobbing for helicopter
+                if (currentCharacter === '🚁') {
+                    characterMesh.position.y = 0.6 + Math.sin(Date.now() * 0.003) * 0.1;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
