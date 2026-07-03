@@ -54,3 +54,24 @@ This project uses vanilla web technologies, making it incredibly lightweight and
 ```bash
 git clone [https://github.com/TarunThakur13/path-vizualizer.git](https://github.com/TarunThakur13/path-vizualizer.git)
 cd path-vizualizer
+```
+
+### 2. Run the App
+Since this is a client-side JavaScript application without a build step, you can simply run it using a local development server to avoid CORS issues with ES modules.
+
+Using VS Code Live Server Extension:
+
+Open the project folder in VS Code.
+
+Right-click index.html and select "Open with Live Server".
+
+Using Node / serve:
+
+```Bash
+npx serve .
+Using Python:
+```
+```Bash
+# Python 3.x
+python -m http.server
+Visit the specified local host URL in your browser (usually http://localhost:5500 or http://localhost:8000).
