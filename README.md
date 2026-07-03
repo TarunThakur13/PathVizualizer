@@ -1,7 +1,3 @@
-### 2. 3D Pathfinding Visualizer
-Create a `README.md` in the root of your `path-vizualizer` repository and paste this:
-
-```markdown
 <div align="center">
   <!-- You can add a logo or banner image here -->
   <h1>🧭 3D Pathfinding Visualizer</h1>
